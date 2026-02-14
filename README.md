@@ -1,3 +1,26 @@
+Add 25 more small-to-medium trucking companies (5-100 trucks) to my leads.xlsx file. Focus on: Ideal Client Profile:
+Family-owned or independent trucking companies with their OWN fleet
+5-100 truck fleet size
+NO large corporations with IT departments (avoid national carriers like TForce, Purolator, Day & Ross, etc.)
+Companies that likely manage dispatch manually via phone/SMS
+Active in GTA region (Brampton, Mississauga, Vaughan, Markham, Scarborough, Richmond Hill, Ajax, Pickering, Burlington, Milton, Oakville)
+EXCLUDE:
+Freight brokers and logistics companies that don't own trucks (they just arrange shipping)
+Companies with names containing "Logistics," "Freight Broker," "Brokerage" unless they clearly operate their own fleet
+Residential addresses (single driver-operators working from home)
+Companies registered to house addresses
+PRIORITIZE:
+Commercial/industrial addresses (business parks, industrial roads, commercial units)
+Companies with "Transport," "Trucking," "Carrier," "Express," "Hauling" in their name
+Companies that employ multiple drivers and need active dispatch coordination
+Owner-operator focused companies with office/yard locations
+Requirements:
+Research verified COMMERCIAL addresses and postal codes only
+Check for duplicates against existing 76 companies in my file
+Focus on companies with dispatchers managing multiple drivers, loads, settlements, detention tracking
+Avoid duplicate addresses or companies already in the list
+Add them to leads.xlsx with proper formatting (Company Name, Address, City, Province, Postal Code, empty Lob_Status/Lob_Date_Sent/Lob_ID columns).
+
 # Lob Letter Automation
 
 Automate sending physical letters using the Lob.com API. Reads lead data from an Excel file and sends personalized letters using a Lob template.
