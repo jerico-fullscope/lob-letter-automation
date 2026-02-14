@@ -5,6 +5,10 @@ import sys
 import os
 from dotenv import load_dotenv
 
+# Fix Windows console encoding issues
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -24,6 +28,9 @@ else:
 # ===== LOB CONFIGURATION =====
 LOB_TEMPLATE_ID = os.getenv('LOB_TEMPLATE_ID')
 
+# Batch size configuration
+BATCH_SIZE = int(os.getenv('BATCH_SIZE', '0'))  # 0 means send all
+
 # Load configuration from .env
 QR_URL = os.getenv('QR_URL', 'https://youtu.be/GlXtHlBPluc')
 FROM_ADDRESS = {
@@ -41,27 +48,30 @@ lob.api_key = API_KEY
 
 # ===== LOAD EXCEL FILE =====
 input_file = "leads.xlsx"
-output_file = "leads_updated.xlsx"
+output_file = "leads.xlsx"  # Save back to same file to track status
 
 try:
     df = pd.read_excel(input_file)
-    print(f"✓ Loaded {len(df)} rows from {input_file}\n")
+    print(f"✓ Loaded {len(df)} rows from {input_file}")
+    if BATCH_SIZE > 0:
+        print(f"📦 Batch mode: Will send maximum {BATCH_SIZE} letters this run\n")
+    else:
+        print(f"📨 Sending all unsent letters\n")
 except FileNotFoundError:
     print(f"ERROR: Could not find {input_file}")
     sys.exit(1)
 
 # Ensure required columns exist
-required_columns = ['Company Name', 'First Name', 'Address', 'City', 'Province', 'Postal Code']
+required_columns = ['Company Name', 'Address', 'City', 'Province', 'Postal Code']
 missing_columns = [col for col in required_columns if col not in df.columns]
 if missing_columns:
     print(f"ERROR: Missing required columns: {missing_columns}")
     sys.exit(1)
 
-# Add Lob_Status and Lob_Date_Sent columns if they don't exist
-if 'Lob_Status' not in df.columns:
-    df['Lob_Status'] = ''
-if 'Lob_Date_Sent' not in df.columns:
-    df['Lob_Date_Sent'] = ''
+# Convert existing columns to string type and fill NaN values
+df['Lob_Status'] = df['Lob_Status'].fillna('').astype(str)
+df['Lob_Date_Sent'] = df['Lob_Date_Sent'].fillna('').astype(str)
+df['Lob_ID'] = df['Lob_ID'].fillna('').astype(str) if 'Lob_ID' in df.columns else pd.Series([''] * len(df))
 
 # ===== PROCESS EACH ROW =====
 letters_sent = 0
@@ -80,9 +90,13 @@ for index, row in df.iterrows():
         print(f"Skipping {company_name}... (previous error: {row['Lob_Status']})")
         continue
 
+    # Check if batch limit reached
+    if BATCH_SIZE > 0 and letters_sent >= BATCH_SIZE:
+        print(f"\n📦 Batch limit reached ({BATCH_SIZE} letters sent). Stopping.\n")
+        break
+
     # Prepare recipient address
     to_address = {
-        "name": row['First Name'],
         "company": company_name,
         "address_line1": row['Address'],
         "address_city": row['City'],
@@ -94,7 +108,7 @@ for index, row in df.iterrows():
     # Prepare merge variables for template
     merge_variables = {
         "company_name": company_name,
-        "first_name": row['First Name'],
+        "first_name": "Team",  # Placeholder since template requires it
         "qr_url": QR_URL,
         "date": datetime.now().strftime("%B %d, %Y")
     }
@@ -107,14 +121,16 @@ for index, row in df.iterrows():
             description=f"Letter to {company_name}",
             to_address=to_address,
             from_address=FROM_ADDRESS,
-            template=LOB_TEMPLATE_ID,
+            file=LOB_TEMPLATE_ID,
             merge_variables=merge_variables,
-            color=True  # Set to False for black & white
+            color=False,  # Black & white printing
+            use_type="marketing"  # or "operational" for transactional mail
         )
 
         # Success!
         df.at[index, 'Lob_Status'] = 'SENT'
         df.at[index, 'Lob_Date_Sent'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        df.at[index, 'Lob_ID'] = letter.id
         letters_sent += 1
 
         print(f"✓ Success! (ID: {letter.id})")
